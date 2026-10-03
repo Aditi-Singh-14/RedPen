@@ -21,7 +21,7 @@ function SampleButtons({ onSelect }) {
 const buttonStyle = {
   padding: '0.5rem 1rem',
   marginRight: '0.5rem',
-  backgroundColor: 'var(--red-pen)',
+  backgroundColor: 'var(--red)',
   color: 'white',
   border: 'none',
   borderRadius: '4px',

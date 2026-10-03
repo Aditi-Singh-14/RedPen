@@ -8,8 +8,8 @@ import Records from './pages/Records';
 function App() {
   return (
     <Router>
-      <NavBar />
-      <div className="container" style={{ paddingTop: '1rem' }}>
+      <div className="container">
+        <NavBar />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/submit" element={<Submit />} />

@@ -4,8 +4,7 @@ import { Link } from 'react-router-dom';
 const STORAGE_KEY = 'redpen_records';
 
 function formatDate(ts) {
-  const d = new Date(ts);
-  return d.toLocaleString();
+  return new Date(ts).toLocaleString();
 }
 
 export default function Records() {
@@ -50,48 +49,48 @@ export default function Records() {
 
   return (
     <div className="records-page">
-      <h2 style={{ fontFamily: "'Fraunces', serif" }}>Analysis Records</h2>
+      <h2>Analysis Records</h2>
       {totals.total === 0 ? (
-        <p>
-          No records yet. <Link to="/submit">Try an analysis</Link>.
-        </p>
+        <div className="empty-state">
+          <p>
+            No records yet. <Link to="/submit">Try an analysis</Link>.
+          </p>
+        </div>
       ) : (
         <>
-          <div className="summary" style={{ marginBottom: '1rem' }}>
-            <p>Total analyses: {totals.total}</p>
-            <p>Total findings – Approach: {totals.approach}, Code: {totals.code}, Alignment: {totals.alignment}</p>
-            <button
-              onClick={clearRecords}
-              style={{
-                backgroundColor: 'var(--red-pen)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '0.4rem 0.8rem',
-                cursor: 'pointer',
-                fontFamily: "'Inter', sans-serif",
-              }}
-            >
+          <div className="stats">
+            <div className="stat-tile">
+              <div className="num">{totals.total}</div>
+              <div className="label">Analyses</div>
+            </div>
+            <div className="stat-tile">
+              <div className="num">{totals.approach}</div>
+              <div className="label">Approach findings</div>
+            </div>
+            <div className="stat-tile">
+              <div className="num">{totals.code}</div>
+              <div className="label">Code findings</div>
+            </div>
+            <div className="stat-tile">
+              <div className="num">{totals.alignment}</div>
+              <div className="label">Alignment findings</div>
+            </div>
+          </div>
+          <div className="records-toolbar">
+            <button type="button" className="btn-cta" onClick={clearRecords}>
               Clear records
             </button>
           </div>
-          <ul style={{ listStyle: 'none', padding: 0 }}>
+          <ul className="record-list">
             {records.map((rec, idx) => (
-              <li
-                key={idx}
-                className="record-item"
-                style={{
-                  border: '1px solid #ddd',
-                  borderRadius: '6px',
-                  padding: '0.8rem',
-                  marginBottom: '0.8rem',
-                }}
-              >
+              <li key={idx} className="record-item">
                 <p><strong>{formatDate(rec.timestamp)}</strong></p>
                 {rec.approachSnippet && (
                   <p>Approach snippet: <em>{rec.approachSnippet}</em></p>
                 )}
-                <p>Findings – Approach: {rec.findings?.approach || 0}, Code: {rec.findings?.code || 0}, Alignment: {rec.findings?.alignment || 0}</p>
+                <p>
+                  Findings — Approach: {rec.findings?.approach || 0}, Code: {rec.findings?.code || 0}, Alignment: {rec.findings?.alignment || 0}
+                </p>
               </li>
             ))}
           </ul>

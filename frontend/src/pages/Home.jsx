@@ -3,6 +3,8 @@ import demoData from '../demoData';
 import ResultCard from '../components/ResultCard';
 import { useNavigate } from 'react-router-dom';
 
+const SAMPLE_TITLES = ['Greedy Coin Change', 'Correct but Unusual', 'Approach / Code Mismatch'];
+
 export default function Home() {
   const [layer0, setLayer0] = useState(null);
   const [layers, setLayers] = useState({});
@@ -23,15 +25,27 @@ export default function Home() {
       </p>
       <div className="sample-grid">
         {demoData.map((demo, idx) => (
-          <div key={idx} className="sample-card" onClick={() => handleDemoSelect(demo)} role="button" tabIndex={0} onKeyPress={() => handleDemoSelect(demo)}>
-            <h4>{['Greedy Coin Change', 'Correct but Unusual', 'Approach / Code Mismatch'][idx]}</h4>
-            <p>{demo.layers?.approach?.findings?.[0]?.claim || 'Sample description'}</p>
-          </div>
+          <button
+            type="button"
+            key={idx}
+            className="sample-card"
+            onClick={() => handleDemoSelect(demo)}
+          >
+            <h4>{SAMPLE_TITLES[idx]}</h4>
+            <p>
+              {demo.layers?.approach?.findings?.[0]?.claim
+                || demo.layers?.code?.findings?.[0]?.claim
+                || demo.layers?.alignment?.findings?.[0]?.claim
+                || 'Open this cached sample.'}
+            </p>
+          </button>
         ))}
       </div>
-      <button className="btn-primary" onClick={() => navigate('/submit')}>Try your own</button>
+      <button type="button" className="btn-cta" onClick={() => navigate('/submit')}>
+        Try your own
+      </button>
       {isDemo && <div className="banner">Sample / cached, not your input</div>}
-      {layer0 && <ResultCard title="Ingest (Layer 0)" data={layer0} />}
+      {layer0 && <ResultCard title="Ingest (Layer 0)" data={layer0} />}
       {Object.entries(layers).map(([key, val]) => (
         <ResultCard key={key} title={key.charAt(0).toUpperCase() + key.slice(1)} data={val} />
       ))}

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import UploadPane from '../components/UploadPane';
 import ResultCard from '../components/ResultCard';
 
-// Key used for persisting analysis records
 const STORAGE_KEY = 'redpen_records';
 
 export default function Submit() {
@@ -26,9 +25,8 @@ export default function Submit() {
       }
       const data = await resp.json();
       setLayer0(data.layer0);
-      setLayers(data.layers);
+      setLayers(data.layers || {});
 
-      // Persist record (only for real analyses)
       try {
         const record = {
           timestamp: Date.now(),
@@ -40,10 +38,8 @@ export default function Submit() {
           },
         };
         const existing = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-        const updated = [record, ...existing];
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify([record, ...existing]));
       } catch (e) {
-        // Swallow storage errors – they shouldn't break UI
         console.warn('Failed to store analysis record', e);
       }
     } catch (e) {
@@ -56,18 +52,14 @@ export default function Submit() {
 
   return (
     <div className="submit-page">
-      <h2 style={{ fontFamily: "'Fraunces', serif" }}>Submit your DSA attempt</h2>
-      <UploadPane onSubmit={handleSubmit} />
-      {loading && <p>Analyzing… please wait.</p>}
-      {error && <p style={{ color: 'var(--red-pen)' }}>Error: {error}</p>}
-      {layer0 && (
-        <div style={{ marginTop: '1rem' }}>
-          <ResultCard title="Ingest (Layer 0)" data={layer0} />
-          {Object.entries(layers).map(([key, val]) => (
-            <ResultCard key={key} title={key.charAt(0).toUpperCase() + key.slice(1)} data={val} />
-          ))}
-        </div>
-      )}
+      <h2>Submit your DSA attempt</h2>
+      <UploadPane onSubmit={handleSubmit} loading={loading} />
+      {loading && <p className="status-line">Analyzing… please wait.</p>}
+      {error && <p className="status-line error">Error: {error}</p>}
+      {layer0 && <ResultCard title="Ingest (Layer 0)" data={layer0} />}
+      {Object.entries(layers).map(([key, val]) => (
+        <ResultCard key={key} title={key.charAt(0).toUpperCase() + key.slice(1)} data={val} />
+      ))}
     </div>
   );
 }

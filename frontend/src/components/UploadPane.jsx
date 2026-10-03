@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 
-function UploadPane({ onSubmit }) {
+function UploadPane({ onSubmit, loading }) {
   const [imageBase64, setImageBase64] = useState('');
+  const [fileName, setFileName] = useState('');
   const [fallbackText, setFallbackText] = useState('');
-  const [approachText, setApproachText] = useState(''); // new state for approach
+  const [approachText, setApproachText] = useState('');
+  const [dragover, setDragover] = useState(false);
 
-  const handleFile = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const readImageFile = (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    setFileName(file.name);
     const reader = new FileReader();
     reader.onload = () => {
-      // Resize canvas to max 1600px on longest side
       const img = new Image();
       img.onload = () => {
         const maxSide = 1600;
@@ -21,45 +22,71 @@ function UploadPane({ onSubmit }) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         const dataUrl = canvas.toDataURL('image/png');
-        const base64 = dataUrl.split(',')[1];
-        setImageBase64(base64);
+        setImageBase64(dataUrl.split(',')[1]);
       };
       img.src = reader.result;
     };
     reader.readAsDataURL(file);
   };
 
+  const handleFile = (e) => {
+    readImageFile(e.target.files?.[0]);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragover(false);
+    readImageFile(e.dataTransfer.files?.[0]);
+  };
+
   const handleSubmit = () => {
     const payload = {};
     if (imageBase64) payload.image_base64 = imageBase64;
     if (fallbackText.trim()) payload.fallback_text = fallbackText.trim();
-    if (approachText.trim()) payload.approach_text = approachText.trim(); // send separate field
+    if (approachText.trim()) payload.approach_text = approachText.trim();
     onSubmit(payload);
   };
 
+  const canSubmit = imageBase64 || fallbackText.trim() || approachText.trim();
+
   return (
-    <div className="card">
-      <h2>Upload DSA attempt</h2>
-      <p>Upload an image or provide raw text and your approach.</p>
-      <input type="file" accept="image/*" onChange={handleFile} />
-      <p>Or paste / type the raw text below (fallback if vision fails):</p>
+    <div className="upload-card">
+      <h3>Upload DSA attempt</h3>
+      <p>Drop a photo or screenshot, or paste the problem and code as text.</p>
+      <label
+        className={`dropzone${dragover ? ' dragover' : ''}`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragover(true);
+        }}
+        onDragLeave={() => setDragover(false)}
+        onDrop={handleDrop}
+      >
+        <span className="dropzone-title">Choose an image</span>
+        <span className="dropzone-hint">PNG or JPG, resized on the client before upload</span>
+        <input className="hidden-input" type="file" accept="image/*" onChange={handleFile} />
+      </label>
+      {fileName && <p className="preview-name">Attached: {fileName}</p>}
+      <label className="field-label" htmlFor="fallback-text">Problem / code (fallback if vision fails)</label>
       <textarea
-        rows={4}
-        placeholder="Enter problem statement, code, fallback text..."
+        id="fallback-text"
+        className="code-input"
+        rows={5}
+        placeholder="Paste the problem statement and your code…"
         value={fallbackText}
         onChange={(e) => setFallbackText(e.target.value)}
-        style={{ width: '100%', marginTop: '0.5rem' }}
       />
-      {/* Separate textarea for the user’s approach */}
+      <label className="field-label" htmlFor="approach-text">Your approach</label>
       <textarea
+        id="approach-text"
+        className="code-input"
         rows={3}
-        placeholder="Enter your approach (optional)"
+        placeholder="Describe how you thought about the problem…"
         value={approachText}
         onChange={(e) => setApproachText(e.target.value)}
-        style={{ width: '100%', marginTop: '0.5rem' }}
       />
-      <button onClick={handleSubmit} style={{ marginTop: '0.5rem' }}>
-        Analyze
+      <button className="btn-primary" onClick={handleSubmit} disabled={loading || !canSubmit}>
+        {loading ? 'Analyzing…' : 'Analyze'}
       </button>
     </div>
   );
