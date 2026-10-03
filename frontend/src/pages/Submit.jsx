@@ -3,6 +3,10 @@ import UploadPane from '../components/UploadPane';
 import ResultCard from '../components/ResultCard';
 
 const STORAGE_KEY = 'redpen_records';
+const ANALYZE_URL = new URL(
+  import.meta.env.VITE_API_URL || '/analyze',
+  'http://localhost:8000',
+).toString();
 
 export default function Submit() {
   const [layer0, setLayer0] = useState(null);
@@ -13,17 +17,36 @@ export default function Submit() {
   const handleSubmit = async (payload) => {
     setLoading(true);
     setError(null);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
     try {
-      const resp = await fetch('/analyze', {
+      const resp = await fetch(ANALYZE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
+      const responseBody = await resp.text();
       if (!resp.ok) {
-        const txt = await resp.text();
-        throw new Error(`Server error ${resp.status}: ${txt}`);
+        const requestError = new Error(`Request failed (${resp.status})`);
+        requestError.responseBody = responseBody || '(empty response body)';
+        try {
+          const serverError = JSON.parse(responseBody);
+          requestError.serverError = serverError.error;
+          requestError.step = serverError.step;
+        } catch {
+          // Keep the raw response body when the server response is not JSON.
+        }
+        throw requestError;
       }
-      const data = await resp.json();
+      let data;
+      try {
+        data = JSON.parse(responseBody);
+      } catch {
+        const requestError = new Error('Request returned invalid JSON');
+        requestError.responseBody = responseBody || '(empty response body)';
+        throw requestError;
+      }
       setLayer0(data.layer0);
       setLayers(data.layers || {});
 
@@ -44,8 +67,14 @@ export default function Submit() {
       }
     } catch (e) {
       console.error(e);
-      setError(e.message);
+      setError({
+        message: e.name === 'AbortError' ? 'Request timed out after 20 seconds.' : (e.serverError || e.message),
+        step: e.step || (e.name === 'AbortError' ? 'request' : 'unknown'),
+        url: ANALYZE_URL,
+        body: e.responseBody || 'No response body was received.',
+      });
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };
@@ -55,7 +84,14 @@ export default function Submit() {
       <h2>Submit your DSA attempt</h2>
       <UploadPane onSubmit={handleSubmit} loading={loading} />
       {loading && <p className="status-line">Analyzing… please wait.</p>}
-      {error && <p className="status-line error">Error: {error}</p>}
+      {error && (
+        <div className="status-line error">
+          <p>Error: {error.message}</p>
+          <p>Step: {error.step}</p>
+          <p>Request URL: {error.url}</p>
+          <p>Response body: {error.body}</p>
+        </div>
+      )}
       {layer0 && <ResultCard title="Ingest (Layer 0)" data={layer0} />}
       {Object.entries(layers).map(([key, val]) => (
         <ResultCard key={key} title={key.charAt(0).toUpperCase() + key.slice(1)} data={val} />
